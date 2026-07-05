@@ -1,0 +1,125 @@
+esphome:
+  name: kaffeemaschine
+  friendly_name: Kaffeemaschine
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger:
+  level: DEBUG
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "3mlV/6Krbk7IgeEXvftxM/4duGn2WQM7l/D9FXgdqwc="
+
+ota:
+  - platform: esphome
+    password: "917b01b3f141adb1d023b01c2098fb6f"
+
+# ------------------------------------------------------- 
+# WLAN 
+# -------------------------------------------------------
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  power_save_mode: none 
+  output_power: 17dB
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Kaffeemaschine Fallback Hotspot"
+    password: "djdsEhp5mJHD"
+
+captive_portal:
+
+# ------------------------------------------------------- 
+# MQTT für Home Assistant 
+# -------------------------------------------------------
+mqtt:
+  broker: "192.168.178.10"   # IP deines Home Assistant MQTT Brokers
+  username: "f.oszwald2"
+  password: "rR0z6LVZAo"
+  topic_prefix: "kaffeemaschine"
+  discovery: true
+  discovery_prefix: "homeassistant"
+  port: 1883
+
+# ------------------------------------------------------- 
+# UART – MaraX Daten 
+# ------------------------------------------------------- 
+external_components:
+  - source: components
+    components:
+      - marax_reader
+
+uart:
+  id: uart_bus
+  baud_rate: 9600
+  rx_pin: 
+    number: 4
+    inverted: true
+    
+marax_reader:
+  id: marax
+  uart_id: uart_bus
+
+  mode: s_mode
+  sw_version: s_sw_version
+
+  steam_temp: s_steam_temp
+  target_steam_temp: s_target_steam_temp
+  hx_temp: s_hx_temp
+  boost_counter: s_boost_counter
+
+  heating_element: s_heating_element
+  pump: s_pump
+
+# -------------------------------------------------------
+# TEXT SENSOR – Mode + Software Version
+# -------------------------------------------------------
+text_sensor:
+  - platform: template
+    id: s_mode
+    name: "MaraX Mode"
+  - platform: template
+    id: s_sw_version
+    name: "MaraX Software Version"
+
+# -------------------------------------------------------
+# SENSOREN – MQTT Ausgabe
+# -------------------------------------------------------
+sensor:
+  - platform: template
+    id: s_steam_temp
+    name: "Steam Temperature"
+    update_interval: 30s
+    unit_of_measurement: "°C"
+  - platform: template
+    id: s_target_steam_temp
+    name: "Target Steam Temperature"
+    update_interval: 30s
+    unit_of_measurement: "°C"
+  - platform: template
+    id: s_hx_temp
+    name: "HX Temperature"
+    update_interval: 30s
+    unit_of_measurement: "°C"
+  - platform: template
+    id: s_boost_counter
+    name: "Boost Counter"
+    update_interval: 30s
+  - platform: wifi_signal 
+    name: "Kaffeemaschine WLAN Signal" 
+    update_interval: 30s
+
+binary_sensor:
+  - platform: template
+    id: s_heating_element
+    name: "Heating Element"
+  - platform: template
+    id: s_pump
+    name: "Pump"
