@@ -41,8 +41,8 @@ captive_portal:
 # -------------------------------------------------------
 mqtt:
   broker: "192.168.178.10"   # IP deines Home Assistant MQTT Brokers
-  username: "f.oszwald2"
-  password: "rR0z6LVZAo"
+  username: !secret mqtt_username
+  password: !secret mqtt_passwort
   topic_prefix: "kaffeemaschine"
   discovery: true
   discovery_prefix: "homeassistant"
