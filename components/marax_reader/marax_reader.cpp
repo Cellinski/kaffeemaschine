@@ -5,7 +5,9 @@ namespace esphome {
 namespace marax_reader {
 
 static const char *TAG = "marax_reader";
-
+MaraXReaderComponent::MaraXReaderComponent() {
+  buffer_.reserve(128);
+}
 // -------------------------
 // safe helpers
 // -------------------------
