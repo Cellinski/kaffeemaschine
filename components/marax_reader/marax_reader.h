@@ -14,7 +14,7 @@ namespace marax_reader {
 
 class MaraXReaderComponent : public Component {
  public:
-  MaraXReaderComponent() = default;
+  MaraXReaderComponent();
 
   void set_uart(esphome::uart::UARTComponent *uart) { uart_ = uart; }
 
