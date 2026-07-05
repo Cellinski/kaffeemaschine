@@ -11,13 +11,30 @@ MaraXReaderComponent::MaraXReaderComponent() {
 // -------------------------
 // safe helpers
 // -------------------------
+// =========================
+// helper functions (HIER)
+// =========================
+
 static inline int safe_stoi(const std::string &s, int fallback = 0) {
   if (s.empty()) return fallback;
-  try {
-    return std::stoi(s);
-  } catch (...) {
-    return fallback;
+
+  int result = 0;
+  bool negative = false;
+  size_t i = 0;
+
+  if (s[0] == '-') {
+    negative = true;
+    i = 1;
   }
+
+  for (; i < s.size(); i++) {
+    if (s[i] < '0' || s[i] > '9') {
+      return fallback;
+    }
+    result = result * 10 + (s[i] - '0');
+  }
+
+  return negative ? -result : result;
 }
 
 static inline bool safe_bool(const std::string &s) {
