@@ -1,14 +1,16 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import uart, sensor, text_sensor, binary_sensor
-from esphome.const import CONF_ID, CONF_UART_ID
+from esphome.const import CONF_ID
+
+DEPENDENCIES = ["uart"]
 
 marax_ns = cg.esphome_ns.namespace("marax_reader")
 MaraXReaderComponent = marax_ns.class_("MaraXReaderComponent", cg.Component)
 
 CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(MaraXReaderComponent),
-    cv.Required(CONF_UART_ID): cv.use_id(uart.UARTComponent),
+    cv.Required("uart_id"): cv.use_id(uart.UARTComponent),
 
     cv.Required("mode"): cv.use_id(text_sensor.TextSensor),
     cv.Required("sw_version"): cv.use_id(text_sensor.TextSensor),
@@ -20,13 +22,14 @@ CONFIG_SCHEMA = cv.Schema({
 
     cv.Required("heating_element"): cv.use_id(binary_sensor.BinarySensor),
     cv.Required("pump"): cv.use_id(binary_sensor.BinarySensor),
-})
+}).extend(cv.COMPONENT_SCHEMA)
+
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
-    uart_component = await cg.get_variable(config[CONF_UART_ID])
+    uart_component = await cg.get_variable(config["uart_id"])
     cg.add(var.set_uart(uart_component))
 
     cg.add(var.set_mode_sensor(await cg.get_variable(config["mode"])))
