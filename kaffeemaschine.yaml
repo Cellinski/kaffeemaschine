@@ -58,6 +58,7 @@ external_components:
       ref: main
     components:
       - marax_reader
+      refresh: 0s
 
 uart:
   id: uart_bus
