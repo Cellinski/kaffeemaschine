@@ -6,30 +6,67 @@ namespace marax_reader {
 
 static const char *TAG = "marax_reader";
 
+// -------------------------
+// safe helpers
+// -------------------------
+static inline int safe_stoi(const std::string &s, int fallback = 0) {
+  if (s.empty()) return fallback;
+  try {
+    return std::stoi(s);
+  } catch (...) {
+    return fallback;
+  }
+}
+
+static inline bool safe_bool(const std::string &s) {
+  return s == "1" || s == "true" || s == "TRUE";
+}
+
+// -------------------------
+// main loop
+// -------------------------
 void MaraXReaderComponent::loop() {
-  if (uart_ == nullptr) {
+  if (!uart_) {
     ESP_LOGE(TAG, "UART not set!");
     return;
   }
 
   uint8_t c;
+
   while (uart_->available()) {
     if (uart_->read_byte(&c)) {
+
+      // line complete
       if (c == '\n') {
-        ESP_LOGD(TAG, "Received line: %s", buffer_.c_str());
-        process_line(buffer_);
+        if (!buffer_.empty()) {
+          process_line(buffer_);
+        }
         buffer_.clear();
-      } else if (c != '\r') {
-        buffer_ += static_cast<char>(c);
+      }
+
+      // ignore CR
+      else if (c != '\r') {
+        // buffer protection (IMPORTANT)
+        if (buffer_.size() < 128) {
+          buffer_ += static_cast<char>(c);
+        } else {
+          ESP_LOGW(TAG, "Line too long, resetting buffer");
+          buffer_.clear();
+        }
       }
     }
   }
 }
 
+// -------------------------
+// parser
+// -------------------------
 void MaraXReaderComponent::process_line(const std::string &line) {
-  ESP_LOGD(TAG, "Processing: %s", line.c_str());
+  ESP_LOGD(TAG, "Line: %s", line.c_str());
 
   std::vector<std::string> parts;
+  parts.reserve(8);
+
   size_t start = 0;
   size_t end = line.find(',');
 
@@ -40,28 +77,48 @@ void MaraXReaderComponent::process_line(const std::string &line) {
   }
   parts.push_back(line.substr(start));
 
+  // -------------------------
+  // validation
+  // -------------------------
   if (parts.size() < 6) {
-    ESP_LOGW(TAG, "Invalid data length: %d", parts.size());
+    ESP_LOGW(TAG, "Invalid frame (too short): %d fields", parts.size());
     return;
   }
 
-  // Mode + SW
-  std::string mode_sw = parts[0];
+  // -------------------------
+  // mode + firmware
+  // -------------------------
+  const std::string &mode_sw = parts[0];
+
+  if (mode_sw.empty()) {
+    ESP_LOGW(TAG, "Empty mode/sw field");
+    return;
+  }
+
   char mode_char = mode_sw[0];
-  std::string sw_version = mode_sw.substr(1);
+  std::string sw_version = (mode_sw.size() > 1) ? mode_sw.substr(1) : "";
 
   std::string mode = (mode_char == 'C') ? "Coffee" : "Steam";
 
-  mode_sensor_->publish_state(mode);
-  sw_sensor_->publish_state(sw_version);
+  if (mode_sensor_) mode_sensor_->publish_state(mode);
+  if (sw_sensor_) sw_sensor_->publish_state(sw_version);
 
-  steam_sensor_->publish_state(std::stoi(parts[1]));
-  target_sensor_->publish_state(std::stoi(parts[2]));
-  hx_sensor_->publish_state(std::stoi(parts[3]));
-  boost_sensor_->publish_state(std::stoi(parts[4]));
+  // -------------------------
+  // numeric values
+  // -------------------------
+  if (steam_sensor_)  steam_sensor_->publish_state(safe_stoi(parts[1]));
+  if (target_sensor_) target_sensor_->publish_state(safe_stoi(parts[2]));
+  if (hx_sensor_)     hx_sensor_->publish_state(safe_stoi(parts[3]));
+  if (boost_sensor_)  boost_sensor_->publish_state(safe_stoi(parts[4]));
 
-  heat_sensor_->publish_state(parts[5] == "1");
-  pump_sensor_->publish_state(parts[5] == "1");
+  // -------------------------
+  // binary sensors
+  // -------------------------
+  if (parts.size() > 5 && heat_sensor_)
+    heat_sensor_->publish_state(safe_bool(parts[5]));
+
+  if (parts.size() > 6 && pump_sensor_)
+    pump_sensor_->publish_state(safe_bool(parts[6]));
 }
 
 }  // namespace marax_reader
