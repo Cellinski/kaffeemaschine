@@ -52,7 +52,10 @@ mqtt:
 # UART – MaraX Daten 
 # ------------------------------------------------------- 
 external_components:
-  - source: components
+  - source:
+      type: git
+      url: https://github.com/Cellinski/kaffeemaschine
+      ref: main
     components:
       - marax_reader
 
